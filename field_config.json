@@ -1,0 +1,167 @@
+{
+  "fields": [
+    {
+      "name": "invoice_type",
+      "label": "Invoice Type",
+      "description": "Type of invoice (e.g., Commercial, Sales Tax, Proforma)",
+      "data_type": "text",
+      "required": true,
+      "default_value": "",
+      "validation_rules": {},
+      "extraction_hints": "Look for document headers or titles"
+    },
+    {
+      "name": "invoice_number",
+      "label": "Invoice Number",
+      "description": "Unique identifier for the invoice",
+      "data_type": "text",
+      "required": true,
+      "default_value": "",
+      "validation_rules": {},
+      "extraction_hints": "Usually labeled as 'Invoice No', 'Bill No', or 'Doc No'"
+    },
+    {
+      "name": "buyer_name",
+      "label": "Buyer Name",
+      "description": "Name of the purchasing company or individual",
+      "data_type": "text",
+      "required": true,
+      "default_value": "",
+      "validation_rules": {},
+      "extraction_hints": "May be labeled as 'Buyer', 'Customer', 'Bill To', or 'Sold To'"
+    },
+    {
+      "name": "supplier_name",
+      "label": "Supplier Name",
+      "description": "Name of the selling company or individual",
+      "data_type": "text",
+      "required": true,
+      "default_value": "",
+      "validation_rules": {},
+      "extraction_hints": "Usually at the top of invoice, may be in header or labeled as 'Seller'"
+    },
+    {
+      "name": "invoice_date",
+      "label": "Invoice Date",
+      "description": "Date when the invoice was issued",
+      "data_type": "date",
+      "required": true,
+      "default_value": "",
+      "validation_rules": {
+        "format": "DD-MM-YYYY"
+      },
+      "extraction_hints": "Convert any date format to DD-MM-YYYY"
+    },
+    {
+      "name": "total_invoice_amount",
+      "label": "Total Invoice Amount",
+      "description": "Total amount to be paid",
+      "data_type": "currency",
+      "required": true,
+      "default_value": "",
+      "validation_rules": {
+        "min_value": 0
+      },
+      "extraction_hints": "Final total amount, cannot be zero or empty"
+    },
+    {
+      "name": "sales_tax_amount",
+      "label": "Sales Tax Amount",
+      "description": "Amount of sales tax charged",
+      "data_type": "currency",
+      "required": false,
+      "default_value": "",
+      "validation_rules": {},
+      "extraction_hints": "May be labeled as GST, VAT, Sales Tax, or Tax Amount"
+    },
+    {
+      "name": "currency",
+      "label": "Currency",
+      "description": "Currency of the invoice amounts",
+      "data_type": "text",
+      "required": false,
+      "default_value": "PKR",
+      "validation_rules": {},
+      "extraction_hints": "If not found, default to PKR"
+    },
+    {
+      "name": "po_numbers",
+      "label": "PO Numbers",
+      "description": "Purchase Order numbers referenced in the invoice",
+      "data_type": "array",
+      "required": false,
+      "default_value": "",
+      "validation_rules": {
+        "item_type": "number"
+      },
+      "extraction_hints": "Must be numeric values with proper PO labels"
+    },
+    {
+      "name": "delivery_challan_number",
+      "label": "Delivery Challan Number",
+      "description": "Delivery challan or delivery order number",
+      "data_type": "text",
+      "required": false,
+      "default_value": "",
+      "validation_rules": {},
+      "extraction_hints": "Look for DCN, Delivery Order, or Challan Number - not Gate Pass"
+    },
+    {
+      "name": "hs_code",
+      "label": "HS Code",
+      "description": "Harmonized System commodity classification code",
+      "data_type": "text",
+      "required": false,
+      "default_value": "",
+      "validation_rules": {},
+      "extraction_hints": "Usually numeric code for product classification"
+    },
+    {
+      "name": "ntn_number",
+      "label": "NTN Number",
+      "description": "National Tax Number",
+      "data_type": "text",
+      "required": false,
+      "default_value": "",
+      "validation_rules": {},
+      "extraction_hints": "Tax identification number"
+    }
+  ],
+  "presets": {
+    "Commercial Invoice": [
+      "invoice_type",
+      "invoice_number",
+      "buyer_name",
+      "supplier_name",
+      "invoice_date",
+      "total_invoice_amount",
+      "currency",
+      "po_numbers"
+    ],
+    "Sales Tax Invoice": [
+      "invoice_type",
+      "invoice_number",
+      "buyer_name",
+      "supplier_name",
+      "invoice_date",
+      "total_invoice_amount",
+      "sales_tax_amount",
+      "currency",
+      "ntn_number"
+    ],
+    "Full Pakistani Invoice": [
+      "invoice_type",
+      "invoice_number",
+      "buyer_name",
+      "supplier_name",
+      "invoice_date",
+      "total_invoice_amount",
+      "sales_tax_amount",
+      "currency",
+      "po_numbers",
+      "delivery_challan_number",
+      "hs_code",
+      "ntn_number"
+    ]
+  }
+}

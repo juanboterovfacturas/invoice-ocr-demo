@@ -1,0 +1,17 @@
+# .streamlit/config.toml
+
+[theme]
+# Very light grey page background (instead of pure white)
+backgroundColor        = "#f8f7ff"
+
+# Slightly darker off-white for panels & sidebar
+secondaryBackgroundColor = "#F7F7F7"
+
+# Main accent color (buttons, slider thumbs, etc.)
+primaryColor           = "#006C35"
+
+# All non-input text in pure black
+textColor              = "#000000"
+
+# Font choice
+font                   = "sans serif"

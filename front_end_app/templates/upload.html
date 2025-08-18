@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Invoice Extraction</title>
+</head>
+<body>
+  <h1>Upload Invoices</h1>
+  {% if error %}
+    <p style="color:red">{{ error }}</p>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data">
+    <p><input type="file" name="files" multiple></p>
+    <p><button type="submit">Process Invoices</button></p>
+  </form>
+</body>
+</html>

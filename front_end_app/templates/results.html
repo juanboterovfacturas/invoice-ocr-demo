@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Invoice Extraction Results</title>
+</head>
+<body>
+  <h1>Extracted Invoices</h1>
+
+  {% if invoices %}
+  <table border="1" cellpadding="5" cellspacing="0">
+    <thead>
+      <tr>
+        {% for col in invoices[0].keys() if col != 'other_options' %}
+          <th>{{ col.replace('_',' ').title() }}</th>
+        {% endfor %}
+        <th>Other Options</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        {% for col, val in inv.items() if col != 'other_options' %}
+          {% set other = inv.other_options.get(col) if inv.other_options else None %}
+          <td>
+            {% if other and other.options|length > 1 %}
+              <select name="{{ col }}">
+                {% for opt in other.options %}
+                  {# default #}
+                  {% set is_selected = false %}
+                  {# if val is a non-string iterable (list/tuple) #}
+                  {% if val is iterable and not (val is string) %}
+                    {% if opt.option in val %}
+                      {% set is_selected = true %}
+                    {% endif %}
+                  {% else %}
+                    {# treat everything else (floats or strings) as string-compare #}
+                    {% if opt.option == (val|string) %}
+                      {% set is_selected = true %}
+                    {% endif %}
+                  {% endif %}
+                  <option value="{{ opt.option }}"{% if is_selected %} selected{% endif %}>
+                    {{ opt.option }}
+                  </option>
+                {% endfor %}
+              </select>
+            {% else %}
+              {{ val }}
+            {% endif %}
+          </td>
+        {% endfor %}
+
+        <td>
+          {% if inv.other_options %}
+            <ul>
+              {% for field, detail in inv.other_options.items() %}
+                <li>
+                  <strong>{{ field.replace('_',' ').title() }}:</strong>
+                  <ul>
+                    {% for opt in detail.options %}
+                      <li>{{ opt.option }} ({{ opt.score }}%)</li>
+                    {% endfor %}
+                    {% if detail.reason %}
+                      <li><em>Reason:</em> {{ detail.reason }}</li>
+                    {% endif %}
+                  </ul>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            &ndash;
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No invoices found.</p>
+  {% endif %}
+
+</body>
+</html>
