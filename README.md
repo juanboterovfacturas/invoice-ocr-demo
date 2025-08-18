@@ -160,5 +160,3 @@ ocr_pipeline.py        # Core OCR processing pipeline
 This is a portfolio demonstration project. For commercial use, please contact the developer.
 
 ---
-
-*Built with ❤️ using Streamlit and Google Gemini AI*
