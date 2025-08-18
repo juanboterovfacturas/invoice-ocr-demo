@@ -694,6 +694,11 @@ elif st.session_state.mode == "review" and "invoices" in st.session_state:
         all_fields = field_manager.get_all_fields()
         
         other_opts = inv.get("other_options", {}) or {}
+        
+        # Debug: Show other_options structure
+        if other_opts:
+            st.write("🔍 Debug - other_options:", other_opts)
+        
         edits: Dict[str, str] = {}
         
         for fld, val in inv.items():
