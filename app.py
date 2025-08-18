@@ -443,6 +443,19 @@ elif st.session_state.mode == "upload":
             
             # Actual processing with error handling
             try:
+                # Debug: Test API connection first
+                try:
+                    test_response = model.generate_content("Test")
+                    st.success("✅ API connection working")
+                except Exception as api_error:
+                    st.error(f"❌ API connection failed: {str(api_error)}")
+                    st.stop()
+                
+                # Debug: Show file info
+                st.info(f"📁 Processing {len(paths)} files:")
+                for i, path in enumerate(paths):
+                    st.write(f"  {i+1}. {Path(path).name} ({Path(path).suffix})")
+                
                 active_fields_tuple = tuple(st.session_state.active_fields) if st.session_state.active_fields else None
                 st.session_state.invoices = load_invoices(model, tuple(paths), active_fields_tuple)
                 st.session_state.processing_time = time.time() - t0
