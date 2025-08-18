@@ -441,10 +441,28 @@ elif st.session_state.mode == "upload":
                     status_text.text("🎯 Finalizing processing...")
                 time.sleep(0.02)
             
-            # Actual processing
-            active_fields_tuple = tuple(st.session_state.active_fields) if st.session_state.active_fields else None
-            st.session_state.invoices = load_invoices(model, tuple(paths), active_fields_tuple)
-            st.session_state.processing_time = time.time() - t0
+            # Actual processing with error handling
+            try:
+                active_fields_tuple = tuple(st.session_state.active_fields) if st.session_state.active_fields else None
+                st.session_state.invoices = load_invoices(model, tuple(paths), active_fields_tuple)
+                st.session_state.processing_time = time.time() - t0
+                
+                # Check if processing returned any results
+                if not st.session_state.invoices:
+                    st.error("❌ Processing failed: No invoices could be extracted from the uploaded files.")
+                    st.markdown("""
+                    **Possible reasons:**
+                    - Files may not contain valid invoices
+                    - API key issues
+                    - Image quality too low
+                    - Unsupported file format or corruption
+                    """)
+                    st.stop()
+                    
+            except Exception as e:
+                st.error(f"❌ Processing error: {str(e)}")
+                st.markdown("Please check your API key configuration and try again.")
+                st.stop()
             
         progress_container.empty()
         
@@ -571,7 +589,30 @@ elif st.session_state.mode == "summary" and "invoices" in st.session_state:
 elif st.session_state.mode == "review" and "invoices" in st.session_state:
     invoices = st.session_state.invoices
     total = len(invoices)
+    
+    # Handle empty invoice list or invalid index
+    if not invoices or total == 0:
+        st.error("⚠️ No invoices were processed successfully. This could be due to:")
+        st.markdown("""
+        - Invalid or corrupted image files
+        - Images that don't contain invoices
+        - API key issues
+        - Network connectivity problems
+        
+        Please try uploading different invoice files.
+        """)
+        st.session_state.mode = "upload"
+        if st.button("🔄 Try Again"):
+            st.rerun()
+        st.stop()
+    
     idx = st.session_state.idx
+    
+    # Ensure index is within bounds
+    if idx >= total or idx < 0:
+        st.session_state.idx = 0
+        idx = 0
+    
     inv = invoices[idx]
     img_path = inv["__image_path"]
     
