@@ -151,8 +151,8 @@ lottie_anim = load_lottie_url(
     "https://lottie.host/fda0e746-60d5-4120-a918-c79c128b1bef/Ip6YQwzhGA.json"
 )
 
-# ── Invoice Pipeline (cached) ─────────────────────────────────
-@st.cache_data(show_spinner=False)
+# ── Invoice Pipeline (temporarily uncached for debugging) ─────────────────────────────────
+# @st.cache_data(show_spinner=False)  # Disabled caching to see debug output
 def load_invoices(_model, paths: tuple, field_names: tuple = None) -> list:
     return process_invoices_as_docs(_model, list(paths), list(field_names) if field_names else None)
 
@@ -456,9 +456,28 @@ elif st.session_state.mode == "upload":
                 for i, path in enumerate(paths):
                     st.write(f"  {i+1}. {Path(path).name} ({Path(path).suffix})")
                 
-                active_fields_tuple = tuple(st.session_state.active_fields) if st.session_state.active_fields else None
-                st.session_state.invoices = load_invoices(model, tuple(paths), active_fields_tuple)
-                st.session_state.processing_time = time.time() - t0
+                # Create a container to capture debug output
+                debug_container = st.expander("🔍 Debug Output", expanded=True)
+                
+                # Capture debug output by redirecting stdout temporarily
+                import sys
+                from io import StringIO
+                
+                old_stdout = sys.stdout
+                sys.stdout = debug_buffer = StringIO()
+                
+                try:
+                    active_fields_tuple = tuple(st.session_state.active_fields) if st.session_state.active_fields else None
+                    st.session_state.invoices = load_invoices(model, tuple(paths), active_fields_tuple)
+                    st.session_state.processing_time = time.time() - t0
+                finally:
+                    # Restore stdout and display debug output
+                    sys.stdout = old_stdout
+                    debug_output = debug_buffer.getvalue()
+                    
+                    if debug_output:
+                        with debug_container:
+                            st.code(debug_output, language="text")
                 
                 # Check if processing returned any results
                 if not st.session_state.invoices:
