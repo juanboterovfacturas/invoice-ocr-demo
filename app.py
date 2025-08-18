@@ -109,11 +109,26 @@ st.markdown("""
 # ── Load Gemini Model ─────────────────────────────────────────
 @st.cache_resource
 def load_model():
-    # Try to get API key from Streamlit secrets, fallback to environment variable
+    # Get API key from Streamlit secrets or environment variable
     try:
         api_key = st.secrets["api_keys"]["GEMINI_API_KEY"]
     except:
-        api_key = os.getenv("GEMINI_API_KEY", "AIzaSyBXVD6tdm4v9xcv5dzduTfpfDGqX2zr3yc")
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            st.error("🔑 **API Key Required**")
+            st.markdown("""
+            Please configure your Google Gemini API key:
+            
+            **For Streamlit Cloud:**
+            - Add `GEMINI_API_KEY` to your app's secrets
+            
+            **For Local Development:**
+            - Add `GEMINI_API_KEY` to your `.streamlit/secrets.toml` file
+            - Or set the `GEMINI_API_KEY` environment variable
+            
+            Get your API key at: https://makersuite.google.com/app/apikey
+            """)
+            st.stop()
     
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(

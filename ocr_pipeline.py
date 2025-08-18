@@ -338,8 +338,11 @@ def enrich_with_other_options(invoices: List[Dict[str, Any]], field_names: List[
     Add 'other_options' to each verified invoice dict using reasoning_agent,
     without altering existing fields, preserving order exactly.
     """
-    # Get API key from environment or use the demo key
-    api_key = os.getenv("GEMINI_API_KEY", "AIzaSyBXVD6tdm4v9xcv5dzduTfpfDGqX2zr3yc")
+    # Get API key from environment variable
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        print("Warning: GEMINI_API_KEY not found in environment variables")
+        return []
     
     def work(inv: Dict[str, Any]) -> Dict[str, Any]:
         img = inv.get("__image_path")
