@@ -454,7 +454,7 @@ Fields to extract:
 For each field, provide alternatives if:
 - Text is handwritten or unclear
 - Multiple possible interpretations exist
-- Field appears incomplete (like "M/S" for buyer_name)
+- Field appears incomplete
 - Numbers could be misread (7 vs 1, 6 vs 8, etc.)
 - Text is partially obscured or faded
 - Field is missing but could be present elsewhere
@@ -467,8 +467,8 @@ Output format:
       "reason": "Handwritten number - 0 could be 8"
     },
     "buyer_name": {
-      "options": [{"option": "M/S", "score": 40}, {"option": "M/S XYZ Company", "score": 60}],
-      "reason": "Appears incomplete - M/S typically followed by company name"
+      "options": [{"option": "ABC", "score": 40}, {"option": "XYZ", "score": 60}],
+      "reason": "Can be both ABC and XYZ based on context"
     }
   }
 ]
