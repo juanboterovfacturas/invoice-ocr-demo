@@ -378,8 +378,14 @@ elif st.session_state.mode == "upload":
     # Field selection
     selected_fields = get_preset_selector()
     
+    # Debug: Show field selection
+    st.write(f"🔍 Debug - get_preset_selector returned: {selected_fields}")
+    
     if selected_fields:
         st.session_state.active_fields = selected_fields
+        st.write(f"🔍 Debug - Set active_fields to: {st.session_state.active_fields}")
+    else:
+        st.write("🔍 Debug - No fields selected, active_fields will be None")
         
         # Show selected fields preview
         field_manager = get_field_manager()
