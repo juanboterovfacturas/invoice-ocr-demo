@@ -206,6 +206,11 @@ def ocr_financial_document(model, image_paths: List[str], field_names: List[str]
     field_manager = FieldConfigManager()
     if field_names:
         instruction = field_manager.generate_extraction_prompt(field_names)
+        # Quick debug to verify custom fields are included
+        print(f"Using dynamic extraction with fields: {field_names}")
+        if "address" in [f.lower() for f in field_names]:
+            print("✅ Address field is included in extraction")
+            print(f"Instruction preview: {instruction[:500]}...")
     else:
         # Fallback to default instruction
         instruction = """
