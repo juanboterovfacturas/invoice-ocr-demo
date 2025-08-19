@@ -695,16 +695,6 @@ elif st.session_state.mode == "review" and "invoices" in st.session_state:
         
         other_opts = inv.get("other_options", {}) or {}
         
-        # Debug: Show other_options structure
-        st.write("🔍 Debug - other_options found:", len(other_opts), "fields")
-        if other_opts:
-            st.write("🔍 Debug - other_options:", other_opts)
-        else:
-            st.write("🔍 Debug - No other_options in invoice data")
-            
-        # Debug: Show full invoice structure (excluding image path)
-        debug_inv = {k: v for k, v in inv.items() if not k.startswith("__")}
-        st.write("🔍 Debug - Full invoice data:", debug_inv)
         
         edits: Dict[str, str] = {}
         

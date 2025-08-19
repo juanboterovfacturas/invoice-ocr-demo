@@ -435,11 +435,13 @@ def reasoning_agent(image_path: str, api_key: str) -> List[Dict[str, Any]]:
     genai.configure(api_key=api_key)
     
     base_instruction = """You are an expert in finance document analysis. For the provided invoice image,
-extract the following fields and provide alternative options where uncertainty exists:
+analyze the text clarity and provide alternative interpretations where ANY uncertainty exists.
+
+IMPORTANT: Be very sensitive to ambiguity - if there's ANY doubt about a field value, provide alternatives.
 
 Fields to extract:
   1. invoice_number
-  2. supplier_name
+  2. supplier_name  
   3. invoice_date
   4. total_invoice_amount
   5. po_numbers
@@ -447,31 +449,31 @@ Fields to extract:
   7. sales_tax_amount
   8. hs_code
   9. ntn_no
+  10. buyer_name
 
-For each field, provide:
-  - Primary extracted value
-  - Alternative options if uncertain (with confidence scores 0-100)
-  - Reason for uncertainty if applicable
+For each field, provide alternatives if:
+- Text is handwritten or unclear
+- Multiple possible interpretations exist
+- Field appears incomplete (like "M/S" for buyer_name)
+- Numbers could be misread (7 vs 1, 6 vs 8, etc.)
+- Text is partially obscured or faded
+- Field is missing but could be present elsewhere
 
 Output format:
 [
   {
     "invoice_number": {
-      "options": [{"option": "INV-2023-001", "score": 80}, {"option": "INV-2023-002", "score": 20}],
-      "reason": "Handwritten text partially unclear"
+      "options": [{"option": "3080", "score": 80}, {"option": "3088", "score": 20}],
+      "reason": "Handwritten number - 0 could be 8"
     },
-    "supplier_name": {
-      "options": [{"option": "ABC Textiles", "score": 100}]
+    "buyer_name": {
+      "options": [{"option": "M/S", "score": 40}, {"option": "M/S XYZ Company", "score": 60}],
+      "reason": "Appears incomplete - M/S typically followed by company name"
     }
   }
 ]
 
-Guard Rails:
-- Convert Urdu text to English
-- Date format: DD-MM-YYYY
-- PO numbers must be numeric
-- Total amount cannot be zero
-- Only use proper Delivery Challan labels
+CRITICAL: Always provide at least 2 options for any field that seems unclear, incomplete, or handwritten.
 """
 
     try:
@@ -583,25 +585,7 @@ def enrich_with_other_options(invoices: List[Dict[str, Any]], field_names: List[
                 inv["other_options"] = other
                 print(f"🔍 DEBUG: Added {len(other)} ambiguous fields to invoice")
             else:
-                print(f"🔍 DEBUG: No ambiguities found for this invoice")
-                # TEMPORARY: Add test ambiguities to verify dropdown functionality
-                if not inv.get("other_options"):
-                    test_options = {}
-                    for field_name, field_value in inv.items():
-                        if field_name.startswith("__") or field_name == "other_options":
-                            continue
-                        # Add test ambiguity for fields with incomplete/questionable data
-                        if not field_value or field_value == "NULL" or field_value == "M/S":
-                            test_options[field_name] = {
-                                "options": [
-                                    [str(field_value) if field_value else "Not Found", 60],
-                                    ["Alternative Value", 40]
-                                ],
-                                "reason": "Temporary test ambiguity for UI testing"
-                            }
-                    if test_options:
-                        inv["other_options"] = test_options
-                        print(f"🔍 DEBUG: Added {len(test_options)} TEST ambiguities to verify UI")
+                print(f"🔍 DEBUG: No ambiguities detected by reasoning agent - this may be normal for clear invoices")
         except Exception as e:
             print(f"❌ DEBUG: Error enriching invoice from {Path(img).name if img else 'unknown'}: {e}")
 
