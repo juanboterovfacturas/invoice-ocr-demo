@@ -479,7 +479,7 @@ Guard Rails:
         print(f"🔍 DEBUG: Loaded image for reasoning agent")
         
         model = GenerativeModel(
-            model_name="gemini-2.0-flash-exp",
+            model_name="gemini-1.5-flash",
             generation_config={"temperature": 0.8}
         )
         print(f"🔍 DEBUG: Created reasoning model")
