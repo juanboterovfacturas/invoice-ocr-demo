@@ -530,6 +530,7 @@ def enrich_with_other_options(invoices: List[Dict[str, Any]], field_names: List[
     
     if not api_key:
         print("❌ DEBUG: GEMINI_API_KEY not found in secrets or environment variables")
+        print("❌ DEBUG: Skipping enrichment - returning invoices without other_options")
         return invoices  # Return without enrichment instead of empty list
     
     def work(inv: Dict[str, Any]) -> Dict[str, Any]:
@@ -583,6 +584,24 @@ def enrich_with_other_options(invoices: List[Dict[str, Any]], field_names: List[
                 print(f"🔍 DEBUG: Added {len(other)} ambiguous fields to invoice")
             else:
                 print(f"🔍 DEBUG: No ambiguities found for this invoice")
+                # TEMPORARY: Add test ambiguities to verify dropdown functionality
+                if not inv.get("other_options"):
+                    test_options = {}
+                    for field_name, field_value in inv.items():
+                        if field_name.startswith("__") or field_name == "other_options":
+                            continue
+                        # Add test ambiguity for fields with incomplete/questionable data
+                        if not field_value or field_value == "NULL" or field_value == "M/S":
+                            test_options[field_name] = {
+                                "options": [
+                                    [str(field_value) if field_value else "Not Found", 60],
+                                    ["Alternative Value", 40]
+                                ],
+                                "reason": "Temporary test ambiguity for UI testing"
+                            }
+                    if test_options:
+                        inv["other_options"] = test_options
+                        print(f"🔍 DEBUG: Added {len(test_options)} TEST ambiguities to verify UI")
         except Exception as e:
             print(f"❌ DEBUG: Error enriching invoice from {Path(img).name if img else 'unknown'}: {e}")
 
