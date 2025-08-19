@@ -378,14 +378,8 @@ elif st.session_state.mode == "upload":
     # Field selection
     selected_fields = get_preset_selector()
     
-    # Debug: Show field selection
-    st.write(f"🔍 Debug - get_preset_selector returned: {selected_fields}")
-    
     if selected_fields:
         st.session_state.active_fields = selected_fields
-        st.write(f"🔍 Debug - Set active_fields to: {st.session_state.active_fields}")
-    else:
-        st.write("🔍 Debug - No fields selected, active_fields will be None")
         
         # Show selected fields preview
         field_manager = get_field_manager()
@@ -463,12 +457,6 @@ elif st.session_state.mode == "upload":
                     st.write(f"  {i+1}. {Path(path).name} ({Path(path).suffix})")
                 
                 active_fields_tuple = tuple(st.session_state.active_fields) if st.session_state.active_fields else None
-                
-                # Debug: Show what fields are being passed
-                st.info(f"🔍 Processing with fields: {st.session_state.active_fields}")
-                if st.session_state.active_fields and "address" in [f.lower() for f in st.session_state.active_fields]:
-                    st.success("✅ Address field is selected for extraction")
-                
                 st.session_state.invoices = load_invoices(model, tuple(paths), active_fields_tuple)
                 st.session_state.processing_time = time.time() - t0
                 
