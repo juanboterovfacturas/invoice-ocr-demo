@@ -457,6 +457,12 @@ elif st.session_state.mode == "upload":
                     st.write(f"  {i+1}. {Path(path).name} ({Path(path).suffix})")
                 
                 active_fields_tuple = tuple(st.session_state.active_fields) if st.session_state.active_fields else None
+                
+                # Debug: Show what fields are being passed
+                st.info(f"🔍 Processing with fields: {st.session_state.active_fields}")
+                if st.session_state.active_fields and "address" in [f.lower() for f in st.session_state.active_fields]:
+                    st.success("✅ Address field is selected for extraction")
+                
                 st.session_state.invoices = load_invoices(model, tuple(paths), active_fields_tuple)
                 st.session_state.processing_time = time.time() - t0
                 
