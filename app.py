@@ -556,7 +556,7 @@ elif st.session_state.mode == "summary" and "invoices" in st.session_state:
     with stat_col1:
         st.metric("Total Invoices", len(st.session_state.invoices))
     with stat_col2:
-        st.metric("Total Amount", f"₹{total_amount:,.0f}")
+        st.metric("Total Amount", f"{total_amount:,.0f}")
     with stat_col3:
         st.metric("Ambiguous Items", ambiguous_count)
     with stat_col4:
