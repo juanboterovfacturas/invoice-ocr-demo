@@ -1,127 +1,131 @@
 import streamlit as st
-import google.generativeai as genai
 import pandas as pd
 import io
+import PyPDF2
+import xml.etree.ElementTree as ET
 import re
-from PIL import Image
-import json
-from pdf2image import convert_from_bytes
 
-# --- CONFIGURACIÓN GEMINI ---
-genai.configure(api_key="AIzaSyB3cD7fGhJkLmNopQrStUvWxYzAbCdEfGh")  # ← TU CLAVE REAL AQUÍ
-model = genai.GenerativeModel('gemini-1.5-flash')
+st.set_page_config(page_title="FacturaFácil DIAN", layout="centered")
+st.title("FacturaFácil DIAN")
+st.markdown("### **Sube PDF DIAN → Excel Helisa en 1 segundo**")
 
-st.set_page_config(page_title="FacturaFácil.co", layout="centered")
-st.title("FacturaFácil.co")
-st.markdown("### Sube tu factura → Excel listo para **Helisa Colombia**")
+uploaded_file = st.file_uploader("Sube factura electrónica (PDF)", type=['pdf'])
 
-# --- SUBIR ARCHIVO ---
-uploaded_file = st.file_uploader("Sube foto o PDF", type=['png', 'jpg', 'jpeg', 'pdf'])
+def extract_xml_from_pdf(pdf_file):
+    """Extrae XML DIAN del PDF"""
+    pdf_reader = PyPDF2.PdfReader(pdf_file)
+    xml_data = ""
+    for page in pdf_reader.pages:
+        text = page.extract_text() or ""
+        if "CUFE" in text or "<fe:" in text or "xmlns:fe" in text:
+            start = text.find("<?xml")
+            if start == -1:
+                start = text.find("<fe:")
+            end = text.find("</fe:ElectronicInvoice>", start)
+            if end != -1:
+                end += 22
+                xml_data = text[start:end]
+                break
+            elif "CUFE" in text:
+                # Busca CUFE como respaldo
+                cufe_match = re.search(r'CUFE[^\w]*([a-f0-9]{96})', text)
+                if cufe_match:
+                    st.warning("XML no encontrado, pero CUFE detectado. Usa IA de respaldo.")
+                    return None
+    return xml_data
 
-def process_file(uploaded_file):
-    """Procesa imagen o PDF y devuelve imagen PIL para Gemini"""
-    if uploaded_file.type.startswith('image/'):
-        # Imagen directa
-        image = Image.open(uploaded_file)
-        return [image]
-    elif uploaded_file.type == 'application/pdf':
-        # PDF: Convierte a imágenes
-        st.info("Convirtiendo PDF a imagen...")
-        images = convert_from_bytes(uploaded_file.read(), dpi=200)
-        return images[:1]  # Solo primera página
-    else:
-        st.error("Formato no soportado. Usa JPG, PNG o PDF.")
+def parse_dian_xml(xml_string):
+    """Parsea XML DIAN → datos contables"""
+    try:
+        root = ET.fromstring(xml_string)
+        ns = {
+            'fe': 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
+            'cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
+            'cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
+        }
+        
+        # NIT Proveedor
+        nit_elem = root.find('.//cac:AccountingSupplierParty/cac:Party/cac:PartyTaxScheme/cbc:CompanyID', ns)
+        nit = nit_elem.text if nit_elem is not None else ""
+        
+        # Fecha
+        fecha_elem = root.find('.//cbc:IssueDate', ns)
+        fecha_raw = fecha_elem.text if fecha_elem is not None else ""
+        if len(fecha_raw) == 10:
+            fecha = f"{fecha_raw[8:10]}/{fecha_raw[5:7]}/{fecha_raw[:4]}"
+        else:
+            fecha = ""
+        
+        # Número Factura
+        factura_elem = root.find('.//cbc:ID', ns)
+        factura = factura_elem.text if factura_elem is not None else ""
+        
+        # Proveedor
+        proveedor_elem = root.find('.//cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName', ns)
+        proveedor = proveedor_elem.text if proveedor_elem is not None else ""
+        
+        # Total
+        total_elem = root.find('.//cac:LegalMonetaryTotal/cbc:PayableAmount', ns)
+        total = total_elem.text if total_elem is not None else "0"
+        
+        # Subtotal
+        subtotal_elem = root.find('.//cac:LegalMonetaryTotal/cbc:LineExtensionAmount', ns)
+        subtotal = subtotal_elem.text if subtotal_elem is not None else "0"
+        
+        # IVA
+        iva_elem = root.find('.//cac:TaxTotal/cbc:TaxAmount', ns)
+        iva = iva_elem.text if iva_elem is not None else "0"
+        
+        return {
+            'Fecha': fecha,
+            'N° Factura': factura,
+            'NIT': nit,
+            'Proveedor': proveedor,
+            'Subtotal': subtotal,
+            'IVA': iva,
+            'Total': total
+        }
+    except Exception as e:
+        st.error(f"Error parseando XML: {e}")
         return None
 
-def extract_with_gemini(image):
-    """Extrae datos con Gemini IA"""
-    prompt = """
-    Extrae de esta factura colombiana (DIAN):
-    - Fecha (dd/mm/yyyy)
-    - N° Factura (ej: F001-123)
-    - NIT proveedor (ej: 900123456-1)
-    - Proveedor (nombre)
-    - Subtotal
-    - IVA (19%)
-    - Total
-
-    Responde SOLO JSON válido:
-    {
-      "Fecha": "15/10/2025",
-      "N° Factura": "F001-123",
-      "NIT": "900123456-1",
-      "Proveedor": "Éxito S.A.",
-      "Subtotal": "84034",
-      "IVA": "15966",
-      "Total": "100000"
-    }
-    """
-    try:
-        response = model.generate_content([prompt, image])
-        return json.loads(response.text)
-    except:
-        return {
-            'Fecha': '', 'N° Factura': '', 'NIT': '',
-            'Proveedor': '', 'Subtotal': '', 'IVA': '', 'Total': ''
-        }
-
 if uploaded_file is not None:
-    images = process_file(uploaded_file)
-    if images:
-        # Muestra la primera imagen
-        st.image(images[0], caption="Factura detectada", use_column_width=True)
-        
-        with st.spinner("Analizando con IA de Google..."):
-            data = extract_with_gemini(images[0])
-        
-        # --- FORMULARIO DE EDICIÓN ---
-        st.subheader("📋 Datos detectados (corrige si es necesario)")
-        col1, col2 = st.columns(2)
-        with col1:
-            data['Fecha'] = st.text_input("Fecha", data.get('Fecha', ''))
-            data['N° Factura'] = st.text_input("N° Factura", data.get('N° Factura', ''))
-            data['NIT'] = st.text_input("NIT", data.get('NIT', ''))
-        with col2:
-            data['Proveedor'] = st.text_input("Proveedor", data.get('Proveedor', ''))
-            data['Subtotal'] = st.text_input("Subtotal", data.get('Subtotal', ''))
-            data['IVA'] = st.text_input("IVA", data.get('IVA', ''))
-            data['Total'] = st.text_input("Total", data.get('Total', ''))
-        
-        st.subheader("💼 Datos contables para Helisa")
-        centro = st.text_input("Centro de Costos", "001")
-        cuenta = st.text_input("Cuenta Contable", "510505")
-        desc = st.text_area("Descripción", "Compra según factura electrónica")
-        
-        if st.button("🎯 Generar Excel para Helisa"):
-            # Crea DataFrame para Helisa
-            df = pd.DataFrame([{
-                'Fecha': data['Fecha'],
-                'Comprobante': data['N° Factura'],
-                'NIT': data['NIT'],
-                'Tercero': data['Proveedor'],
-                'Débito': data['Total'].replace('.', '').replace(',', ''),
-                'Crédito': '',
-                'C. Costo': centro,
-                'Cuenta': cuenta,
-                'Descripción': desc
-            }])
-            
-            # Exporta como .xls
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, sheet_name='Movimientos', index=False)
-            output.seek(0)
-            
-            st.download_button(
-                label="📥 Descargar Excel (.XLS) para Helisa",
-                data=output,
-                file_name=f"factura_{data['N° Factura'] or 'sin_numero'}.xls",
-                mime="application/vnd.ms-excel"
-            )
-            st.success("✅ ¡Excel listo! Abrelo y guarda como .XLS (97-2003) para Helisa.")
-            st.balloons()
-    else:
-        st.error("No se pudo procesar el archivo.")
-
-st.markdown("---")
-st.caption("💡 Tip: Usa PDFs de facturas electrónicas DIAN o fotos claras.")
+    with st.spinner("Leyendo XML DIAN del PDF..."):
+        xml_str = extract_xml_from_pdf(uploaded_file)
+        if xml_str:
+            data = parse_dian_xml(xml_str)
+            if data and data['Total'] != "0":
+                st.success("¡Factura DIAN leída 100% automático!")
+                st.write(f"**N° Factura:** {data['N° Factura']}")
+                st.write(f"**NIT:** {data['NIT']}")
+                st.write(f"**Total:** ${data['Total']}")
+                
+                # Genera Excel Helisa
+                df = pd.DataFrame([{
+                    'Fecha': data['Fecha'],
+                    'Comprobante': data['N° Factura'],
+                    'NIT': data['NIT'],
+                    'Tercero': data['Proveedor'],
+                    'Débito': data['Total'].replace('.', ''),
+                    'Crédito': '',
+                    'C. Costo': '001',
+                    'Cuenta': '510505',
+                    'Descripción': f"Factura DIAN {data['N° Factura']}"
+                }])
+                
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df.to_excel(writer, sheet_name='Movimientos', index=False)
+                output.seek(0)
+                
+                st.download_button(
+                    label="Descargar Excel para Helisa",
+                    data=output,
+                    file_name=f"DIAN_{data['N° Factura']}.xls",
+                    mime="application/vnd.ms-excel"
+                )
+                st.balloons()
+            else:
+                st.error("No se pudo leer el XML. ¿Es factura electrónica DIAN?")
+        else:
+            st.error("No se encontró XML en el PDF. Prueba con otra factura.")
