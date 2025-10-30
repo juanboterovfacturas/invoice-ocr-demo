@@ -6,63 +6,57 @@ import json
 from pdf2image import convert_from_bytes
 from PIL import Image
 
-# === TU API KEY (PEGA TU CLAVE REAL) ===
-genai.configure(api_key="AIzaSyC8icWu2kap3RxvMTv7n4VtcaPikeifjHg")  # ← TU CLAVE
-model = genai.GenerativeModel('gemini-1.5-flash')
+# === TU API KEY PERSONAL (OBLIGATORIO) ===
+# 1. Ve a: https://aistudio.google.com/app/apikey
+# 2. Crea tu clave → PÉGALA AQUÍ
+genai.configure(api_key="AIzaSyC8icWu2kap3RxvMTv7n4VtcaPikeifjHg")  # ← PEGA TU CLAVE
+model = genai.GenerativeModel('gemini-pro-vision')  # ← MODELO QUE SÍ FUNCIONA
 
-st.set_page_config(page_title="FacturaFácil AUTO", layout="wide")
-st.title("FacturaFácil AUTO - 100% Automático")
-st.markdown("**Sube PDF → 3 segundos → Excel Helisa**")
+st.set_page_config(page_title="FacturaFácil", layout="wide")
+st.title("FacturaFácil - 100% Automático")
+st.markdown("**Sube PDF → Excel Helisa en 3 segundos**")
 
-uploaded_file = st.file_uploader("Sube factura (PDF o foto)", type=['pdf', 'png', 'jpg'])
+uploaded_file = st.file_uploader("Sube factura", type=['pdf', 'png', 'jpg'])
 
 if uploaded_file is not None:
-    with st.spinner("Leyendo con IA de Google..."):
-        # Convierte a imagen
+    with st.spinner("Leyendo factura con IA..."):
+        # Convierte PDF a imagen
         images = convert_from_bytes(uploaded_file.read(), dpi=300, first_page=1, last_page=1)
         img = images[0]
         st.image(img, caption="Factura detectada", use_column_width=True)
         
-        # PROMPT CORREGIDO (ESTE SÍ FUNCIONA)
-        prompt = """FACTURA COLOMBIANA - EXTRAER DATOS EXACTOS
-
-De esta imagen, extrae SOLO:
-- Fecha (dd/mm/yyyy)
-- N° Factura (RC 6655, FECN-48459, etc.)
-- NIT del proveedor (solo números y guiones)
+        # PROMPT OPTIMIZADO PARA TUS FACTURAS
+        prompt = """Extrae EXACTAMENTE de esta factura colombiana:
+- N° Factura (ej: FECN-48459, RC 6655)
+- NIT del proveedor
 - Nombre del proveedor
-- Total a Pagar (solo números)
+- Fecha (dd/mm/yyyy)
+- Total a Pagar (solo números, sin $ ni puntos)
 
-RESPUESTA SOLO JSON VÁLIDO:
-{
-  "Fecha": "29/09/2025",
-  "N° Factura": "FECN-48459",
-  "NIT": "810006056-8",
-  "Proveedor": "ALMACEN EL RUIZ",
-  "Total": "1798875"
-}"""
-
+Devuelve SOLO JSON válido:
+{"N° Factura": "FECN-48459", "NIT": "810006056-8", "Proveedor": "ALMACEN EL RUIZ", "Fecha": "29/09/2025", "Total": "1798875"}"""
+        
         try:
             response = model.generate_content([prompt, img])
             data = json.loads(response.text)
             
             st.success("¡Factura leída 100% automático!")
-            st.write(f"**Factura:** {data.get('N° Factura', 'N/A')}")
-            st.write(f"**NIT:** {data.get('NIT', 'N/A')}")
-            st.write(f"**Proveedor:** {data.get('Proveedor', 'N/A')}")
-            st.write(f"**Total:** ${data.get('Total', '0')}")
+            st.write(f"**Factura:** {data.get('N° Factura')}")
+            st.write(f"**NIT:** {data.get('NIT')}")
+            st.write(f"**Proveedor:** {data.get('Proveedor')}")
+            st.write(f"**Total:** ${data.get('Total')}")
 
-            # Excel para Helisa
+            # EXCEL PARA HELISA
             df = pd.DataFrame([{
-                'Fecha': data.get('Fecha', ''),
-                'Comprobante': data.get('N° Factura', ''),
-                'NIT': data.get('NIT', ''),
-                'Tercero': data.get('Proveedor', ''),
-                'Débito': data.get('Total', '0'),
+                'Fecha': data.get('Fecha'),
+                'Comprobante': data.get('N° Factura'),
+                'NIT': data.get('NIT'),
+                'Tercero': data.get('Proveedor'),
+                'Débito': data.get('Total'),
                 'Crédito': '',
                 'C. Costo': '001',
                 'Cuenta': '510505',
-                'Descripción': f"Factura {data.get('N° Factura', '')}"
+                'Descripción': f"Factura {data.get('N° Factura')}"
             }])
             
             output = io.BytesIO()
@@ -80,4 +74,4 @@ RESPUESTA SOLO JSON VÁLIDO:
             
         except Exception as e:
             st.error(f"Error: {e}")
-            st.write("Intenta con otra factura.")
+            st.write("Asegúrate de tener una API key válida.")
