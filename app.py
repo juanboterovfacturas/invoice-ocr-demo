@@ -10,7 +10,7 @@ import google.generativeai as genai
 import json
 
 # === TU API KEY DE GEMINI (PEGA AQUÍ) ===
-genai.configure(api_key="AIzaSyB3cD7fGhJkLmNopQrStUvWxYzAbCdEfGh")  # ← TU CLAVE REAL
+genai.configure(api_key="AIzaSyC8icWu2kap3RxvMTv7n4VtcaPikeifjHg")  # ← TU CLAVE REAL
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 st.set_page_config(page_title="FacturaFácil DIAN", layout="centered")
