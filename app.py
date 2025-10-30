@@ -9,8 +9,8 @@ from PIL import Image
 import google.generativeai as genai
 import json
 
-# === TU API KEY DE GEMINI (PEGA AQUÍ) ===
-genai.configure(api_key="AIzaSyC8icWu2kap3RxvMTv7n4VtcaPikeifjHg")  # ← TU CLAVE REAL
+# === TU API KEY DE GEMINI ===
+genai.configure(api_key="AIzaSyC8icWu2kap3RxvMTv7n4VtcaPikeifjHg")  # ← PEGA TU CLAVE REAL
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 st.set_page_config(page_title="FacturaFácil DIAN", layout="centered")
@@ -20,13 +20,11 @@ st.markdown("### **Sube PDF → Excel Helisa 100% automático**")
 uploaded_file = st.file_uploader("Sube factura electrónica DIAN (PDF)", type=['pdf'])
 
 def extract_xml_from_pdf(pdf_bytes):
-    """Busca XML DIAN en el PDF"""
     try:
         reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
         for page in reader.pages:
             text = page.extract_text() or ""
-            if "CUFE" in text or "<fe:" in text:
-                # Busca inicio del XML
+            if "CUFE" in text:
                 start = text.find("<?xml")
                 if start == -1:
                     start = text.find("<fe:")
@@ -34,7 +32,6 @@ def extract_xml_from_pdf(pdf_bytes):
                 if end != -1:
                     end += 22
                     return text[start:end]
-                # Alternativa: busca todo el bloque XML
                 xml_match = re.search(r'(<\?xml.*</fe:ElectronicInvoice>)', text, re.DOTALL)
                 if xml_match:
                     return xml_match.group(1)
@@ -43,7 +40,6 @@ def extract_xml_from_pdf(pdf_bytes):
     return None
 
 def parse_dian_xml(xml_str):
-    """Extrae datos del XML DIAN"""
     try:
         root = ET.fromstring(xml_str)
         ns = {
@@ -75,12 +71,10 @@ def parse_dian_xml(xml_str):
             'Proveedor': proveedor,
             'Total': total
         }
-    except Exception as e:
-        st.write(f"Error XML: {e}")
+    except:
         return None
 
 def ocr_fallback(pdf_bytes):
-    """Respaldo: OCR + Gemini IA"""
     try:
         images = convert_from_bytes(pdf_bytes, dpi=300, first_page=1, last_page=1)
         img = images[0]
@@ -95,7 +89,7 @@ def ocr_fallback(pdf_bytes):
         - Total a Pagar
 
         Devuelve JSON válido:
-        {"Fecha": "05/09/2025", "N° Factura": "FECN-48459", "NIT": "810006056-8", "Proveedor": "ALMACEN EL RUIZ", "Total": "1798875"}
+        {"Fecha": "29/09/2025", "N° Factura": "FECN-48459", "NIT": "810006056-8", "Proveedor": "ALMACEN EL RUIZ", "Total": "1798875"}
         """
         response = model.generate_content([prompt, img])
         return json.loads(response.text)
@@ -126,7 +120,6 @@ if uploaded_file is not None:
         st.write(f"**Proveedor:** {data.get('Proveedor', 'N/A')}")
         st.write(f"**Total:** ${data.get('Total', '0')}")
 
-        # Genera Excel para Helisa
         df = pd.DataFrame([{
             'Fecha': data.get('Fecha', ''),
             'Comprobante': data.get('N° Factura', ''),
@@ -152,4 +145,4 @@ if uploaded_file is not None:
         )
         st.balloons()
     else:
-        st.error("No se pudo leer la factura. Prueba con otra.")
+        st.error("No se pudo leer la factura.")
